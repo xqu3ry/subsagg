@@ -1,0 +1,21 @@
+tools:
+  - name: subfinder
+    cmd: ["subfinder", "-d", "{domain}", "-silent"]
+  - name: assetfinder
+    cmd: ["assetfinder", "--subs-only", "{domain}"]
+  - name: amass
+    cmd: ["amass", "enum", "-passive", "-d", "{domain}"]
+  - name: findomain
+    cmd: ["findomain", "-t", "{domain}", "--quiet"]
+  - name: sublist3r
+    cmd: ["sublist3r", "-d", "{domain}", "-o", "-"]
+  - name: chaos
+    cmd: ["chaos", "-d", "{domain}", "-silent"]
+  - name: crtsh
+    cmd: ["crtsh", "{domain}"]
+  - name: knockpy
+    cmd: ["knockpy", "-d", "{domain}"]
+  - name: shuffledns
+    cmd: ["shuffledns", "-d", "{domain}", "-list", "{wordlist}", "-r", "{resolvers}", "-silent"]
+wordlist: "/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt"
+resolvers: "/etc/resolv.conf"
