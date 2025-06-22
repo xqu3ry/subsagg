@@ -23,7 +23,7 @@ Make sure `$HOME/go/bin` is in your `$PATH`.
 ## Usage
 
 ```bash
-subagg run example.com
+subsagg run example.com
 ```
 
 Results are saved to `subdomains_example.com.txt`.
@@ -31,13 +31,13 @@ Results are saved to `subdomains_example.com.txt`.
 Show config:
 
 ```bash
-subagg config show
+subsagg config show
 ```
 
 Add a tool:
 
 ```bash
-subagg config add-tool mytool "mytool,-d,{domain}"
+subsagg config add-tool mytool "mytool,-d,{domain}"
 ```
 
 ## Configuration
