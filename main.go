@@ -2,13 +2,11 @@ package main
 
 import (
 	"bufio"
-//	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
-//	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
