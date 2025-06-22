@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-
 	"gopkg.in/yaml.v3"
 )
 
