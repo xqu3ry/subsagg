@@ -52,7 +52,7 @@ var defaultConfig = Config{
 		{Name: "chaos", Cmd: []string{"chaos", "-d", "{domain}", "-silent"}},
 		{Name: "crtsh", Cmd: []string{"crtsh", "{domain}"}},
 		{Name: "knockpy", Cmd: []string{"knockpy", "-d", "{domain}"}},
-		{Name: "shuffledns", Cmd: []string{"shuffledns", "-d", "{domain}", "-list", "{wordlist}", "-r", "{resolvers}", "-silent"}},
+		{Name: "shuffledns", Cmd: []string{"shuffledns", "-d", "{domain}", "-list", "{wordlist}", "-r", "{resolvers}", "-silent", "-type", "brute"}},
 	},
 	Wordlist:  "/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt",
 	Resolvers: "/etc/resolv.conf",
