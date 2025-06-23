@@ -9,9 +9,23 @@ import (
 	"os/exec"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"gopkg.in/yaml.v3"
 )
+
+func init() {
+	fmt.Println(`               
+                __                     
+      ___ __ __/ /  ___ ___ ____ ____ _
+     (_-</ // / _ \(_-</ _ '/ _ '/ _ '/
+    /___/\_,_/_.__/___/\_,_/\_, /\_, / 
+                           /___//___/     
+    Version 0.1.1
+
+    by xqu3ry
+`)
+}
 
 type Tool struct {
 	Name string   `yaml:"name"`
@@ -44,52 +58,88 @@ var defaultConfig = Config{
 	Resolvers: "/etc/resolv.conf",
 }
 
+
+
 func main() {
-	if len(os.Args) < 2 {
-		usage()
-		os.Exit(1)
+	verbose := false
+	recursive := false
+	depth := 2
+
+	args := os.Args[1:]
+	newArgs := []string{}
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "-v", "--verbose":
+			verbose = true
+		case "-r", "--recursive":
+			recursive = true
+		case "--depth":
+			if i+1 < len(args) {
+				d, err := strconv.Atoi(args[i+1])
+				if err == nil && d > 0 {
+					depth = d
+				}
+				i++
+			}
+		default:
+			newArgs = append(newArgs, args[i])
+		}
 	}
-	cmd := os.Args[1]
+	if len(newArgs) < 1 {
+		usage()
+		return
+	}
+	cmd := newArgs[0]
 	switch cmd {
 	case "run":
-		runMain(os.Args[2:])
+		runMain(newArgs[1:], verbose, recursive, depth)
 	case "config":
-		configCmd(os.Args[2:])
+		configCmd(newArgs[1:])
 	default:
 		usage()
-		os.Exit(1)
+		return
 	}
 }
 
-func runMain(args []string) {
+func runMain(args []string, verbose, recursive bool, depth int) {
 	if len(args) < 1 {
 		fmt.Println("Type domain. Example: subsagg run example.com")
-		os.Exit(1)
+		return
 	}
 	domain := args[0]
 	config := loadConfig()
 	fmt.Printf("~ Collecting subdomains for %s...\n", domain)
 	all := map[string]struct{}{}
-	for _, tool := range config.Tools {
-		cmdline := make([]string, len(tool.Cmd))
-		for i, c := range tool.Cmd {
-			c = strings.ReplaceAll(c, "{domain}", domain)
-			c = strings.ReplaceAll(c, "{wordlist}", config.Wordlist)
-			c = strings.ReplaceAll(c, "{resolvers}", config.Resolvers)
-			cmdline[i] = c
-		}
-		fmt.Printf("<+> %s: %s\n", tool.Name, strings.Join(cmdline, " "))
-		subs, err := runTool(cmdline)
-		if err != nil {
-			fmt.Printf("! %s not complete: %v\n", tool.Name, err)
-			continue
-		}
-		for _, sub := range subs {
-			if isValidDomain(sub) && strings.HasSuffix(sub, domain) {
-				all[sub] = struct{}{}
+
+	if recursive {
+		visited := map[string]struct{}{}
+		recursiveSubdomains(domain, config, all, visited, verbose, 1, depth)
+	} else {
+		for _, tool := range config.Tools {
+			cmdline := make([]string, len(tool.Cmd))
+			for i, c := range tool.Cmd {
+				c = strings.ReplaceAll(c, "{domain}", domain)
+				c = strings.ReplaceAll(c, "{wordlist}", config.Wordlist)
+				c = strings.ReplaceAll(c, "{resolvers}", config.Resolvers)
+				cmdline[i] = c
+			}
+			fmt.Printf("<+> %s: %s\n", tool.Name, strings.Join(cmdline, " "))
+			subs, err := runTool(cmdline, verbose)
+			if err != nil {
+				fmt.Printf("! %s not complete: %v\n", tool.Name, err)
+				continue
+			}
+			if verbose {
+				fmt.Printf("[verbose] %s found %d subdomains (raw output)\n", tool.Name, len(subs))
+			}
+			for _, sub := range subs {
+				if isValidDomain(sub) && strings.HasSuffix(sub, domain) {
+					all[sub] = struct{}{}
+				}
 			}
 		}
 	}
+
 	// Sort
 	result := make([]string, 0, len(all))
 	for sub := range all {
@@ -103,13 +153,62 @@ func runMain(args []string) {
 	} else {
 		fmt.Printf("<+> %d unique subdomains saved to %s\n", len(result), outf)
 	}
+	if verbose {
+		fmt.Printf("[verbose] Done. Total unique subdomains: %d\n", len(result))
+	}
 }
 
-func runTool(cmdline []string) ([]string, error) {
+// recursive search
+func recursiveSubdomains(domain string, config Config, all, visited map[string]struct{}, verbose bool, currentDepth, maxDepth int) {
+	if _, seen := visited[domain]; seen {
+		return
+	}
+	visited[domain] = struct{}{}
+	if verbose {
+		fmt.Printf("[verbose] Recursion level %d/%d for %s\n", currentDepth, maxDepth, domain)
+	}
+	newSubs := []string{}
+	for _, tool := range config.Tools {
+		cmdline := make([]string, len(tool.Cmd))
+		for i, c := range tool.Cmd {
+			c = strings.ReplaceAll(c, "{domain}", domain)
+			c = strings.ReplaceAll(c, "{wordlist}", config.Wordlist)
+			c = strings.ReplaceAll(c, "{resolvers}", config.Resolvers)
+			cmdline[i] = c
+		}
+		fmt.Printf("<+> %s: %s\n", tool.Name, strings.Join(cmdline, " "))
+		subs, err := runTool(cmdline, verbose)
+		if err != nil {
+			fmt.Printf("! %s not complete: %v\n", tool.Name, err)
+			continue
+		}
+		if verbose {
+			fmt.Printf("[verbose] %s found %d subdomains (raw output)\n", tool.Name, len(subs))
+		}
+		for _, sub := range subs {
+			if isValidDomain(sub) && strings.HasSuffix(sub, domain) {
+				if _, exists := all[sub]; !exists {
+					all[sub] = struct{}{}
+					newSubs = append(newSubs, sub)
+				}
+			}
+		}
+	}
+	if currentDepth < maxDepth {
+		for _, sub := range newSubs {
+			recursiveSubdomains(sub, config, all, visited, verbose, currentDepth+1, maxDepth)
+		}
+	}
+}
+
+func runTool(cmdline []string, verbose bool) ([]string, error) {
 	if len(cmdline) == 0 {
 		return nil, errors.New("empty command")
 	}
 	bin, args := cmdline[0], cmdline[1:]
+	if verbose {
+		fmt.Printf("[verbose] Executing: %s %s\n", bin, strings.Join(args, " "))
+	}
 	cmd := exec.Command(bin, args...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -123,6 +222,9 @@ func runTool(cmdline []string) ([]string, error) {
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
+		if verbose && line != "" {
+			fmt.Printf("[verbose] output: %s\n", line)
+		}
 		if line != "" {
 			for _, l := range strings.Split(line, "\n") {
 				subs = append(subs, strings.TrimSpace(l))
@@ -251,7 +353,7 @@ func usage() {
 	fmt.Printf(`subsagg: subdomain aggregator written in Go
 
 Usage:
-  subsagg run <domain>
+  subsagg run <domain> [-v | --verbose] [-r | --recursive] [--depth N]
   subsagg config <action> [arguments]
 
 Config actions:
