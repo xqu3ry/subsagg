@@ -39,9 +39,9 @@ type Config struct {
 	Resolvers string `yaml:"resolvers"`
 }
 
-const (
-	var defaultConfigFile = getDefaultConfigPath()
-)
+
+var defaultConfigFile = getDefaultConfigPath()
+
 
 func getDefaultConfigPath() string {
 	home, err := os.UserHomeDir()
