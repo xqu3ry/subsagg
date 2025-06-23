@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"bufio"
 	"errors"
 	"fmt"
@@ -39,8 +40,23 @@ type Config struct {
 }
 
 const (
-	defaultConfigFile = "subsagg.yaml"
+	var defaultConfigFile = getDefaultConfigPath()
 )
+
+func getDefaultConfigPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic("Cannot get home directory")
+	}
+	path := filepath.Join(home, ".config", "subsagg", "subsagg.yaml")
+	dir := filepath.Dir(path)
+
+	// Создаем ~/.config/subsagg, если его нет
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.MkdirAll(dir, 0755)
+	}
+	return path
+}
 
 var defaultConfig = Config{
 	Tools: []Tool{
