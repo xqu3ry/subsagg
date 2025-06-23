@@ -42,7 +42,7 @@ subsagg config add-tool mytool "mytool,-d,{domain}"
 
 ## Configuration
 
-The first run creates `subsagg.yaml` if it does not exist.  
+The first run creates `/home/<YOUR_USER>/.config/subsagg/subsagg.yaml` if it does not exist.  
 Edit it to add or remove tools, change wordlist, or resolvers.
 
 Example:
