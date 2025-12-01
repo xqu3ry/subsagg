@@ -39,9 +39,7 @@ type Config struct {
 	Resolvers string `yaml:"resolvers"`
 }
 
-
 var defaultConfigFile = getDefaultConfigPath()
-
 
 func getDefaultConfigPath() string {
 	home, err := os.UserHomeDir()
@@ -50,8 +48,6 @@ func getDefaultConfigPath() string {
 	}
 	path := filepath.Join(home, ".config", "subsagg", "subsagg.yaml")
 	dir := filepath.Dir(path)
-
-	// Создаем ~/.config/subsagg, если его нет
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		os.MkdirAll(dir, 0755)
 	}
@@ -73,8 +69,6 @@ var defaultConfig = Config{
 	Wordlist:  "/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt",
 	Resolvers: "/etc/resolv.conf",
 }
-
-
 
 func main() {
 	verbose := false
@@ -364,7 +358,6 @@ func setResolvers(path string) {
 	saveConfig(c)
 	fmt.Println("Resolvers set.")
 }
-
 func usage() {
 	fmt.Printf(`subsagg: subdomain aggregator written in Go
 
